@@ -3,27 +3,25 @@ package ammy.BSNotesCounter;
 import java.awt.Font;
 import java.net.URISyntaxException;
 
-import javax.swing.BoxLayout;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdateListener{
 	
 	// ── Add UI Parts ──────────────────────
 
-	private JLabel status = new JLabel("⚪ Disconnected");
-	private JLabel songName = new JLabel("Song: -");
-	private JLabel njs = new JLabel("Notes Speed: -");
-	private JLabel score = new JLabel("Score: -");
-	private JLabel combo = new JLabel("Combo: -");
-	private JLabel hitNotes = new JLabel("Total Hit Notes: -");
-	private JLabel noteFullyCut = new JLabel("Total Fully Cut Notes: -");
-	private JLabel miss  = new JLabel("Miss:  -");
+	private JLabel status			= new JLabel("⚪ Disconnected");
+	private JLabel songName			= new JLabel("Song: -");
+	private JLabel notesJumpSpeed	= new JLabel("Notes Speed: -");
+	private JLabel songBPM			= new JLabel("Song BPM: -");
+	private JLabel score			= new JLabel("Score: -");
+	private JLabel combo			= new JLabel("Combo: -");
+	private JLabel maxCombo			= new JLabel("Max Combo: -");
+	private JLabel hitNotes			= new JLabel("Total Hit Notes: -");
+	private JLabel miss				= new JLabel("Miss:  -");
+	private JButton connectionButton = new JButton("Connect");
 	
-	private final int changedFontSize = 30;
-	JLabel[] lbls = {status, songName, njs, score, combo, miss, hitNotes, noteFullyCut};
+	private final int changedFontSize = 25;
+	JLabel[] lbls = {status, songName, notesJumpSpeed, songBPM, score, combo, maxCombo, miss, hitNotes};
 	{
 		for (JLabel label : lbls){
 			Font currentFont = label.getFont();
@@ -37,8 +35,8 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	
 	//── Window Setting ─────────────────────
 	
-	private final int winWidth = 550;
-	private final int winHeight = 400;
+	private final int winWidth	= 550;
+	private final int winHeight	= 400;
 	
 	// ──────────────────────────────────────
 	
@@ -66,7 +64,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			{
 				wsClient.close();
 			}
-			wsClient= new BeatSaberWebSocketClient(this);
+			wsClient = new BeatSaberWebSocketClient(this);
 			wsClient.connect();
 		} catch (URISyntaxException e) {
 			status.setText("❌ Invalid URI");
@@ -96,7 +94,8 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 		if (status.status.beatmap != null) {
 			BeatSaberStatus.BeatmapData map = status.status.beatmap;
 			songName.setText("♫ " + map.songName + " [" + map.difficulty + "] ");
-			njs.setText("Notes Speed:" + map.njs);
+			notesJumpSpeed.setText("Notes Speed:" + map.notesJumpSpeed);
+			songBPM.setText("Song BPM:" + map.songBPM);
 		}
 		
 		// score, combo, miss
@@ -104,20 +103,21 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			BeatSaberStatus.Performance perf = status.status.performance;
 			score.setText("Score: " + perf.score);
 			combo.setText("Combo: " + perf.combo);
+			maxCombo.setText("Max Combo:" + perf.maxCombo);
 			hitNotes.setText("Total Hit Notes: " + perf.hitNotes);
-			noteFullyCut.setText("Total Fully Cut Notes: " + perf.noteFullyCut);
 			miss.setText("Miss: " + perf.missedNotes);
 		}
 	}
 	
 	// Reset Display
-	private void resetLabels() {
+	private void resetLabels() {								// 
 		songName.setText("Song: -");
-		njs.setText("Notes Speed: -");
+		notesJumpSpeed.setText("Notes Speed: -");
+		songBPM.setText("Song BPM: -");
 		score.setText("Score: -");
 		combo.setText("Combo: -");
+		maxCombo.setText("Max Combo: -");
 		hitNotes.setText("Total Hit Notes: -");
-		noteFullyCut.setText("Total Fully Cut Notes: -");
 		miss.setText("Miss:  -");
 	}
 	
@@ -126,13 +126,18 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 		mainFrame.setLayout(new BoxLayout(mainFrame, BoxLayout.Y_AXIS));
 		mainFrame.add(status);
 		mainFrame.add(songName);
-		mainFrame.add(njs);
+		mainFrame.add(notesJumpSpeed);
+		mainFrame.add(songBPM);
 		mainFrame.add(score);
 		mainFrame.add(combo);
+		mainFrame.add(maxCombo);
 		mainFrame.add(hitNotes);
-		mainFrame.add(noteFullyCut);
 		mainFrame.add(miss);
+		mainFrame.add(connectionButton);
 		add(mainFrame);
+		connectionButton.addActionListener(e -> {
+			connectWebSocket();
+		});
 	}
 	
 	public static void main(String[] args) {

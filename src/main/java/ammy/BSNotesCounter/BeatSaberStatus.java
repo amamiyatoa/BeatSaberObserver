@@ -21,10 +21,8 @@ public class BeatSaberStatus {
 		int missedNotes;
 		@SerializedName("hitNotes")
 		int hitNotes;
-		@SerializedName("currentMaxScore")
-		int currentMaxScore;
-		@SerializedName("noteFullyCut")
-		int noteFullyCut;
+		@SerializedName("maxCombo")
+		int maxCombo;
 	}
 	static class BeatmapData {
 		// 楽曲から曲名や作成者・難易度を取得する
@@ -34,6 +32,8 @@ public class BeatSaberStatus {
 		String songAuthorName;
 		String difficulty;
 		@SerializedName("noteJumpSpeed")
-		Number njs;
+		Number notesJumpSpeed;
+		@SerializedName("songBPM")
+		Number songBPM;
 	}
 }

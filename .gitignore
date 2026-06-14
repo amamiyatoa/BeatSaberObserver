@@ -1,0 +1,20 @@
+# Mavenビルド成果物
+target/
+output/
+
+# class,jarの除外
+*.class
+*.jar
+
+# IDE設定ファイル(Eclipse)
+.classpath
+.project
+.settings/
+
+# IDE設定ファイル(IntelliJ)
+.idea/
+*.iml
+
+# OS関連
+.DS_Store
+Thumbs.dboutput/ 

@@ -32,8 +32,10 @@ public class BeatSaberStatus {
 		String songAuthorName;
 		String difficulty;
 		@SerializedName("noteJumpSpeed")
-		Number notesJumpSpeed;
+		int notesJumpSpeed;
 		@SerializedName("songBPM")
-		Number songBPM;
+		int songBPM;
+		@SerializedName("songCover")
+		String songCover;
 	}
 }

@@ -3,90 +3,233 @@ package ammy.BSNotesCounter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
+import java.io.File;
+import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.net.URISyntaxException;
 
 import javax.swing.*;
+import javax.swing.border.*;
+
 import javax.imageio.*;
 
 public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdateListener{
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	// ── Add UI Parts ──────────────────────
 
-	//各種表示する物のラベル定義
-	private JLabel status			= new JLabel("⚪ Disconnected");
-	private JLabel songCover		= new JLabel("");
-	private JLabel songName			= new JLabel("Song: -");
-	private JLabel songAuthor		= new JLabel("Song Author: -");
-	private JLabel songDifficulty	= new JLabel("[ - ]");
-	private JLabel notesJumpSpeed	= new JLabel("Notes Speed: -");
-	private JLabel songBPM			= new JLabel("Song BPM: -");
-	private JLabel score			= new JLabel("Score: -");
-	private JLabel combo			= new JLabel("Combo: -");
-	private JLabel maxCombo			= new JLabel("Max Combo: -");
-	private JLabel hitNotes			= new JLabel("Total Hit Notes: -");
-	private JLabel miss				= new JLabel("Miss:  -");
+	//definitions label
+	private JLabel connectStatus					= new JLabel("⚪ Disconnected");
+	private JLabel songCover				= new JLabel("");
+	private int songCoverImageSize			= 200;
+	private int songCoverBorderSize			= 3;
+	private final ImageIcon alternativeIcon = new ImageIcon("src/main/java/ammy/BSNotesCounter/img/alternativeNoImage.png");
+	Border songCoverBorder					= BorderFactory.createLineBorder(Color.BLACK, songCoverBorderSize);
+	private JLabel songName					= new JLabel("Song: -");
+	private JLabel songAuthor				= new JLabel("Song Author: -");
+	private JLabel songDifficulty			= new JLabel("[ - ]");
+	private JLabel notesJumpSpeed			= new JLabel("Notes Speed: -");
+	private JLabel songBPM					= new JLabel("Song BPM: -");
+	private JLabel score					= new JLabel("Score: -");
+	private JLabel combo					= new JLabel("Combo: -");
+	private JLabel maxCombo					= new JLabel("Max Combo: -");
+	private JLabel hitNotes					= new JLabel("Total Hit Notes: -");
+	private JLabel miss						= new JLabel("Miss:  -");
 	
-	//メニューバー作成
-	private JMenuBar windowMenuBar = new JMenuBar();
-	private JMenu helpMenu = new JMenu("Help(_H)");
-	private JMenuItem versionMenuItem = new JMenuItem("Version");
-	private JMenuItem exitMenuItem = new JMenuItem("Exit");
-	
-	//WebSocketと接続するためのボタンを作成
-	private JButton connectionButton = new JButton("Connect");
-	
-	//フォントサイズを定数化(25px)
-	private final int changedFontSize = 25;
-	//ラベルをlblsで1次元配列化
-	JLabel[] lbls = {
-			status,songName, songAuthor, songDifficulty, notesJumpSpeed, songBPM, score, combo, maxCombo, miss, hitNotes
+	JLabel[] leftLabels = {
+			connectStatus, notesJumpSpeed, songBPM, score, combo, maxCombo, hitNotes, miss
 	};
-	//各ラベルに定数化したフォントサイズを適応
-	{
-		for (JLabel label : lbls){
-			Font currentFont = label.getFont();
-		
-			Font newFont = new Font(currentFont.getName(), currentFont.getStyle(), changedFontSize);
-			label.setFont(newFont);
-		}
+	JLabel[] rightLabels = {
+			songCover, songName, songAuthor, songDifficulty
+	};
+	
+	//Application version constant
+	private String versions					= "0.0.8-SNAPSHOT";
+	
+	//Create menu bar
+	private JMenuBar windowMenuBar			= new JMenuBar();
+	private JMenu fileMenu					= new JMenu("File(_F)");
+	private JMenu helpMenu					= new JMenu("Help(_H)");
+	private JMenuItem openFolder			= new JMenuItem("Open Folder");
+	private JMenuItem settingView			= new JMenuItem("View Setting");
+	private JMenuItem exitMenuItem			= new JMenuItem("Exit");
+	private JMenuItem versionMenuItem		= new JMenuItem("Version");
+	
+	//Create WebSocket connection button
+	private JButton connectionButton 		= new JButton("Connect");
+	
+	private JPanel createLeftPanel() {
+		JPanel leftFrame = new JPanel();										//create leftFrame
+		leftFrame.setLayout(new BoxLayout(leftFrame, BoxLayout.Y_AXIS));		//setting layout of leftFrame
+		leftFrame.setAlignmentX(Component.CENTER_ALIGNMENT);					//Setting align the leftFrame
+		leftFrame.setPreferredSize(new Dimension(winWidth / 2, winHeight));		//Setting Prefer Size of leftFrame
+		leftFrame.setMinimumSize(new Dimension(winWidth / 2, winHeight));		//Setting Minimum Size of leftFrame
+		leftFrame.setMaximumSize(new Dimension(winWidth / 2, winHeight));		//Setting Maximum Size of leftFrame
+		leftFrame.add(Box.createVerticalGlue());								//Add a margin to the top of leftFrame
+		for(JLabel leftLbls : leftLabels) {										//Add labels of leftFrame
+			leftFrame.add(leftLbls);
+		};
+		leftFrame.add(connectionButton);
+		connectionButton.addActionListener(e -> connectWebSocket());
+		leftFrame.add(Box.createVerticalGlue());								//Add a margin to the bottom of leftFrame
+		return leftFrame;														//Return a value to createLeftFrame
 	}
+	private JPanel createRightPanel() {
+		JPanel rightFrame = new JPanel();						//create rightFrame
+		rightFrame.setLayout(new BoxLayout(rightFrame, BoxLayout.Y_AXIS));		//setting layout of rigthFrame
+		rightFrame.setPreferredSize(new Dimension(winWidth / 2, winHeight));	//Setting Prefer Size of rightFrame
+		rightFrame.setMinimumSize(new Dimension(winWidth / 2,winHeight));		//Setting Minimum Size of rightFrame
+		rightFrame.setMaximumSize(new Dimension(winWidth / 2, winHeight));		//setting Maximum Size of rightFrame
+		rightFrame.add(Box.createVerticalGlue());								//Add a margin to the top of rightFrame
+		songCover.setBorder(songCoverBorder);									//Add borders of songCover
+		for(JLabel rightLbls : rightLabels) {									//Add labels of rightFrame
+			rightFrame.add(rightLbls);
+		}
+		rightFrame.add(Box.createVerticalGlue());								//Add a margin to the bottom of rightFrame
+		return rightFrame;														//Return a value to createRightFrame
+	}
+	
+	//Constants for Font Sizes(25px)
+	private final int changedFontSize 		= 20;
 	
 	// ──────────────────────────────────────
 	
 	//── Window Setting ─────────────────────
 	
-	//ウィンドウの縦横サイズを定数化
-	private final int winWidth	= 650;
-	private final int winHeight	= 450;
+	//Set the window's width and height to constants
+	private final int winWidth				= 650;
+	private final int winHeight				= 450;
 	
 	// ──────────────────────────────────────
 	
 	private BeatSaberWebSocketClient wsClient;
+	private Config config = new Config();
+	private static final String ConfigDir	= System.getProperty("user.home") + File.separator + ".BSNotesCounter";
+	private static final String ConfigFile	= "Config.json";
+	public bsPerfInfo bsPerfInfo;
+	public bsMapInfo bsMapInfo;
 	
 	public App() {
-		init();
-		guiDisplay();
+		init();						//Application initialization
+		guiDisplay();				//Set GUI for Application
 		
 		setVisible(true);
 	}
 	
-	//起動時の初期設定
+	//Initialization at startup
 	public void init() {
-		setTitle("BeatSaber Observer");						//ウィンドウタイトルを設定
-		setSize(winWidth,winHeight);						//ウィンドウサイズの設定
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);		//閉じるボタンの挙動を設定
-		setLocationRelativeTo(null);						//起動時の初期位置を設定
-		setResizable(false);								//ウィンドウ表示後のサイズ変更の無効化
+		setTitle("BeatSaber Observer");						//Setting Window Title
+		setSize(winWidth,winHeight);						//Setting Window Size
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);		//Setting default Close Button
+		setLocationRelativeTo(null);						//Setting at startup location
+		setResizable(false);								//Disable window size resizable
+		try {
+			File configDir = new File(ConfigDir);
+			String configPath = ConfigDir + File.separator + ConfigFile;
+			File configFileFullPath = new File(configPath);
+			if (!configDir.exists()) {
+				configDir.mkdirs();
+			}
+			
+			if(!configFileFullPath.exists()) {
+				this.config = Config.createNewSetting(configPath);
+				JOptionPane.showMessageDialog(
+						null,
+						"新しい設定ファイルを作成しました！\n設定ファイルの場所: " + configFileFullPath.getAbsolutePath(),
+						"Create new setting file",
+						JOptionPane.INFORMATION_MESSAGE
+					);
+			} else if(configFileFullPath.exists()) {
+				this.config = Config.loadFromFile(configPath);
+				File resultFileFullPath = new File(config.getResult().getResultOutputPath());
+				JOptionPane.showMessageDialog(
+						null,
+						"既存設定を読み込みました！\n設定ファイルの場所: " + configFileFullPath.getAbsolutePath() + "\n" +
+						"リザルトの保存場所: " + resultFileFullPath.getAbsolutePath(),
+						"Config File Exists",
+						JOptionPane.INFORMATION_MESSAGE
+					);
+			}
+			
+			
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(
+					null,
+					"予期せぬエラーが発生しました\nErr: " + e.getMessage(),
+					"Exception",
+					JOptionPane.ERROR_MESSAGE
+				);
+			e.printStackTrace();
+			System.exit(0);
+		}
+
+		//Apply font size to labels
+		for (JLabel label : leftLabels){
+			applyFontSize(label, changedFontSize);
+		}
+		for (JLabel label : rightLabels) {
+			applyFontSize(label, changedFontSize);
+		}
 		
+		//File Selector
+		openFolder.addActionListener(e -> {
+			try {
+				String configPath = ConfigDir + File.separator + ConfigFile;
+				this.config = Config.loadFromFile(configPath);
+				JFileChooser dirChooser = new JFileChooser(this.config.getResult().getResultOutputPath());
+				dirChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				
+				int directorySelectedResult = dirChooser.showOpenDialog(null);
+				if(directorySelectedResult == JFileChooser.APPROVE_OPTION) {
+					File selectedDir = dirChooser.getSelectedFile();
+					String selectedDirPath = selectedDir.getPath();
+					try {
+						config.getResult().setResultOutputPath(selectedDirPath);
+						config.saveToFile(Config.configFilePath);
+						JOptionPane.showMessageDialog(
+								null,
+								"Selected Directories:" + selectedDir,
+								"What's selected Directory",
+								JOptionPane.INFORMATION_MESSAGE
+							);
+						System.out.println("Changed log directory: " + selectedDir);
+					} catch(IOException changeDirErr) {
+						changeDirErr.printStackTrace();
+					}
+				} else if(directorySelectedResult == JFileChooser.CANCEL_OPTION) {
+					return;
+				}
+			} catch (IOException configErr) {
+				configErr.printStackTrace();
+			}
+		});
+		
+		settingView.addActionListener(e -> {
+			boolean saving = this.config.getResult().isSaveEnabled();
+			String resultPath = this.config.getResult().getResultOutputPath();
+			File resultOutputFullPath = new File(resultPath);
+			String configFilePath = ConfigDir + File.separator + ConfigFile;
+			JOptionPane.showMessageDialog(
+					null,
+					"Save Enabled: " + saving + "\nOutput Path: " + resultOutputFullPath.getAbsolutePath() + "\nSetting File Directories: " + configFilePath,
+					"Setting Viewer",
+					JOptionPane.INFORMATION_MESSAGE
+			);
+		});
+		
+		//Display Version Information
 		versionMenuItem.addActionListener(e -> {
 			JOptionPane.showMessageDialog(
 					null,
-					"Version: 0.0.5-SNAPSHOT",
+					"Version: " + versions,
 					"Version Information",
 					JOptionPane.INFORMATION_MESSAGE
 			);
 		});
+		//Exit Application
 		exitMenuItem.addActionListener(e -> {
 			int chooseConfirm = JOptionPane.showConfirmDialog(
 					null,
@@ -101,16 +244,27 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 				return;
 			}
 		});
-		
+
+		//Display Menu Items
+		fileMenu.add(openFolder);
+		fileMenu.add(settingView);
+		fileMenu.add(exitMenuItem);
 		helpMenu.add(versionMenuItem);
-		helpMenu.add(exitMenuItem);
+		windowMenuBar.add(fileMenu);
 		windowMenuBar.add(helpMenu);
 		setJMenuBar(windowMenuBar);
 		
-		connectWebSocket();									//WebSocketに接続
+		connectWebSocket();									//Connect WebSocket
 	}
 	
-	//WebSocket接続クラス
+	//apply GUI font size
+	private void applyFontSize(JLabel label, int size) {
+		Font currentFont = label.getFont();
+		Font newFont = new Font(currentFont.getName(), currentFont.getStyle(), size);
+		label.setFont(newFont);
+	}
+	
+	//WebSocket connection class
 	private void connectWebSocket() {
 		try {
 			if (wsClient != null)
@@ -120,7 +274,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			wsClient = new BeatSaberWebSocketClient(this);
 			wsClient.connect();
 		} catch (URISyntaxException e) {
-			status.setText("❌ Invalid URI");
+			connectStatus.setText("❌ Invalid URI");
 		}
 	}
 	
@@ -128,52 +282,112 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	
 	@Override
 	public void onConnected() {
-		status.setText("🟢 Connected");
+		connectStatus.setText("🟢 Connected");
 	}
 	@Override
 	public void onDisconnected() {
-		status.setText("⚪ Disconnected");
+		connectStatus.setText("⚪ Disconnected");
 		resetLabels();
 	}
 	@Override
 	public void onError(String message) {
-		status.setText("❌️ Error:" + message);
+		connectStatus.setText("❌️ Error:" + message);
 	}
+
+	//for ResultFileOutput
+	public static class bsPerfInfo{
+		
+		public int score;
+		public int combo;
+		public int maxCombo;
+		public int hitNotes;
+		public int miss;
+		
+		public bsPerfInfo(BeatSaberStatus.Performance perf) {
+			this.score			= perf.score;
+			this.combo			= perf.combo;
+			this.maxCombo		= perf.maxCombo;
+			this.hitNotes		= perf.hitNotes;
+			this.miss			= perf.missedNotes;
+		}
+	}
+	public static class bsMapInfo{
+		
+		public String songName;
+		public String songAuthor;
+		public String songDifficulty;
+		public Number notesJumpSpeed;
+		public Number songBPM;
+		
+		public bsMapInfo(BeatSaberStatus.BeatmapData map) {
+			this.songName		= map.songName;
+			this.songAuthor		= map.songAuthorName;
+			this.songDifficulty	= map.difficulty;
+			this.notesJumpSpeed = map.notesJumpSpeed;
+			this.songBPM		= map.songBPM;
+		}
+	}
+	
 	@Override
 	public void onStatusUpdated(BeatSaberStatus status) {
 		if (status.status == null) return;
 		
 		// song info
-		if (status.status.beatmap != null) {
-			BeatSaberStatus.BeatmapData map = status.status.beatmap;
-			songName.setText("♫ " + map.songName);									//現在の楽曲での曲名と難易度を取得して表示する
-			notesJumpSpeed.setText("Notes Speed:" + map.notesJumpSpeed);			//現在の楽曲のNJSを取得して表示する
-			songBPM.setText("Song BPM:" + map.songBPM);								//現在の楽曲のBPMを取得して表示する
-			setSongImages(map.songCover, 128);										//現在の楽曲のジャケット画像を表示する
-			songAuthor.setText("Song Author:" + map.songAuthorName);				//
-			songDifficulty.setText("[ " + map.difficulty + " ]");					//
+		SwingUtilities.invokeLater(() -> {
 			
-		}
-		
-		// score, combo, miss
-		if (status.status.performance != null) {
+			BeatSaberStatus.BeatmapData map = status.status.beatmap;
 			BeatSaberStatus.Performance perf = status.status.performance;
-			score.setText("Score: " + perf.score);					//現在のスコアを取得して表示する
-			combo.setText("Combo: " + perf.combo);					//現在のコンボ数を取得して表示する
-			maxCombo.setText("Max Combo:" + perf.maxCombo);			//現在の最大コンボ数を所得して表示する
-			hitNotes.setText("Total Hit Notes: " + perf.hitNotes);	//現在の総ヒットノーツ数を取得して表示する
-			miss.setText("Miss: " + perf.missedNotes);				//現在の総ミス数を取得して表示する
+			
+			if (map != null) {
+				songName.setText("♫ " + map.songName);									//Display the current song name
+				int njs = map.notesJumpSpeed.intValue();								//Convert njs into the int type
+				notesJumpSpeed.setText("Notes Speed:" + njs);							//Display the current notes speed
+				songBPM.setText("Song BPM:" + map.songBPM);								//Display the current song BPM
+				setSongImages(map.songCover);											//Display the current song jacket images
+				songAuthor.setText("🖋️" + map.songAuthorName);							//Display the current song author
+				songDifficulty.setText("[ " + map.difficulty + " ]");					//Display the current song difficulty
+				
+			}
+			
+			// score, combo, miss
+			if (perf != null) {
+				score.setText("Score: " + perf.score);					//get and display the current score
+				combo.setText("Combo: " + perf.combo);					//get and display the current combo
+				maxCombo.setText("Max Combo:" + perf.maxCombo);			//get and display the max combo
+				hitNotes.setText("Total Hit Notes: " + perf.hitNotes);	//get and display the total hit notes
+				miss.setText("Miss: " + perf.missedNotes);				//get and display the total miss notes
+				
+			}
+			//save the log file when finished
+			if("songStart".equals(status.event)) {
+				this.bsMapInfo		= new bsMapInfo(map);
+			}
+			if("finished".equals(status.event) || "failed".equals(status.event)) {
+				this.bsPerfInfo		= new bsPerfInfo(perf);
+				finished(bsPerfInfo,bsMapInfo);
+			}
+		});
+	}
+	
+	//finished method
+	private void finished(bsPerfInfo bsPerfInfo, bsMapInfo bsMapInfo) {
+		try {
+			String configPath = ConfigDir + File.separator + ConfigFile;
+			config = Config.loadFromFile(configPath);
+			File resultOutputFullPath = new File(config.getResult().getResultOutputPath());
+			String resultOutputFullPaths = resultOutputFullPath.getAbsolutePath();
+			if(config.getResult().isSaveEnabled()) {
+				new ResultFileOutput(resultOutputFullPaths, bsPerfInfo, bsMapInfo);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
-	/**
-	 * Base64文字列をデコードしてJLabelにセット
-	 * @param base64Str		status.beatmap.songCoverの値
-	 * @param size			表示サイズ
-	 */
-	private void setSongImages(String base64Str, int size) {
+	//Base64str decode and set into the label
+	private void setSongImages(String base64Str) {
 		if(base64Str == null || base64Str.isEmpty()) {
-			songCover.setIcon(null);
+			songCover.setIcon(alternativeIcon);
 			return;
 		}
 		
@@ -185,21 +399,25 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			BufferedImage buffImage = ImageIO.read(new ByteArrayInputStream(songImageBytes));
 			
 			//3, Resize
-			Image scaledImage = buffImage.getScaledInstance(size, size,  Image.SCALE_SMOOTH);
+			Image scaledImage = buffImage.getScaledInstance(songCoverImageSize, songCoverImageSize,  Image.SCALE_SMOOTH);
 			
 			//4, ImageIcon -> set JLabel
 			songCover.setIcon(new ImageIcon(scaledImage));
-		} catch (Exception e) {
-			songCover.setIcon(null);
+		} catch (IOException e) {
+			System.err.println("Failed to read image: " + e.getMessage());
+			songCover.setIcon(alternativeIcon);
+		} catch (IllegalArgumentException e) {
+			System.err.println("Invalid Base64 string: " + e.getMessage());
+			songCover.setIcon(alternativeIcon);
 		}
 	}
 	
 	// Reset Display
-	private void resetLabels() {								//ラベルリセット時の表示テキスト
-		songCover.setIcon(null);
+	private void resetLabels() {								//Reset labels
+		songCover.setIcon(alternativeIcon);
 		songName.setText("Song: -");
 		songAuthor.setText("Song Author: -");
-		songDifficulty.setText("[ - ]");
+		songDifficulty.setText("[ Difficulty: - ]");
 		
 		notesJumpSpeed.setText("Notes Speed: -");
 		songBPM.setText("Song BPM: -");
@@ -212,40 +430,15 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	
 	
 	public void guiDisplay() {
-		JPanel mainFrame = new JPanel();
-		mainFrame.setLayout(new BoxLayout(mainFrame, BoxLayout.X_AXIS));
+		JPanel mainFrame = new JPanel();									//create mainFrame
+		mainFrame.setLayout(new BoxLayout(mainFrame, BoxLayout.X_AXIS));	//setting layout of mainFrame
 		
-		JPanel leftFrame = new JPanel();
-		leftFrame.setLayout(new BoxLayout(leftFrame, BoxLayout.Y_AXIS));
-		leftFrame.setPreferredSize(new Dimension(winWidth / 2, winHeight));//leftFrameの
-		leftFrame.add(status);							//現在接続されているか切断しているかの表示をパネルに追加
-		leftFrame.add(notesJumpSpeed);					//現在プレイ中の楽曲のNJSをパネルに追加
-		leftFrame.add(songBPM);							//現在プレイ中の楽曲のBPMをパネルに追加
-		leftFrame.add(score);							//現在のスコアをパネルに追加
-		leftFrame.add(combo);							//現在のコンボ数をパネルに追加
-		leftFrame.add(maxCombo);						//現在プレイ中の楽曲での最大コンボ数をパネルに追加
-		leftFrame.add(hitNotes);						//現在プレイ中の楽曲でのヒットノーツ数をパネルに追加
-		leftFrame.add(miss);							//現在プレイ中の楽曲でのミスカット・通過ノーツ数をパネルに追加
-		leftFrame.add(connectionButton);				//BeatSaberのWebSocket接続をするボタンをパネルに追加
-		
-		JPanel rightFrame = new JPanel();
-		rightFrame.setLayout(new BoxLayout(rightFrame, BoxLayout.Y_AXIS));
-		rightFrame.setPreferredSize(new Dimension(winWidth / 2, winHeight));
-		rightFrame.add(songCover);						//現在プレイ中の楽曲のジャケット画像をパネルに追加
-		rightFrame.add(songName);						//現在プレイ中の楽曲名をパネルに追加
-		rightFrame.add(songAuthor);						//現在プレイ中の楽曲の作者名をパネルに追加
-		rightFrame.add(songDifficulty);					//現在プレイ中の楽曲の難易度をパネルに追加
-		
-		connectionButton.addActionListener(e -> {		//connectionButtonをクリックしたときのアクション
-			connectWebSocket();
-		});
-		
-		mainFrame.add(leftFrame);						//mainFrameにleftFrameｑを追加
-		mainFrame.add(rightFrame);						//mainFrameにrightFrameを追加
-		add(mainFrame);									//mainFrameをJFrameに追加
+		mainFrame.add(createLeftPanel());						//add createLeftPanel to mainFrame
+		mainFrame.add(createRightPanel());						//add createRightPanel to mainFrame
+		add(mainFrame);											//add mainFrame
 	}
 	
-	public static void main(String[] args) {			// 実行用mainメソッド
+	public static void main(String[] args) {					//run main method
 		SwingUtilities.invokeLater(App::new);
 	}
 }

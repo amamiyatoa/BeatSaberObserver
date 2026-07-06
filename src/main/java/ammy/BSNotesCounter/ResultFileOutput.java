@@ -18,7 +18,9 @@ public class ResultFileOutput {
 		int hour = nowTime.getHour();
 		int minute = nowTime.getMinute();
 		int second = nowTime.getSecond();
-		String dateTime = year + "-" + month + "-" + day + "-" + hour + "-" + minute + "-" + second + "-";
+		String currDate = year + "-" + month + "-" + day;
+		String currTime = hour + "-" + minute + "-" + second;
+		String dateTime = currDate + "-" + currTime;
 		
 		String fileName = dateTime + mapInfo.songName + "[" + mapInfo.songDifficulty + "]" + ".log";
 		File filePath = new File(fileName);
@@ -37,7 +39,7 @@ public class ResultFileOutput {
 					"Hit Notes: "		+ perfInfo.hitNotes			+ "\n" +
 					"Miss: "			+ perfInfo.miss;
 			writer.write(writeData);
-			System.out.println("Result saved: [" + fileFullPath + " ]");
+			System.out.println(currTime + "Result saved: [" + fileFullPath + " ]");
 		} catch(IOException e) {
 			System.err.println("File write error: [" + e.getMessage() + " ]");
 		}

@@ -47,13 +47,14 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	};
 	
 	//Application version constant
-	private String versions					= "0.0.8-SNAPSHOT";
+	private String version					= "0.0.8";
 	
 	//Create menu bar
 	private JMenuBar windowMenuBar			= new JMenuBar();
 	private JMenu fileMenu					= new JMenu("File(_F)");
 	private JMenu helpMenu					= new JMenu("Help(_H)");
 	private JMenuItem openFolder			= new JMenuItem("Open Folder");
+	private JMenuItem openResultFolder		= new JMenuItem("Open Result Log Folder");
 	private JMenuItem settingView			= new JMenuItem("View Setting");
 	private JMenuItem exitMenuItem			= new JMenuItem("Exit");
 	private JMenuItem versionMenuItem		= new JMenuItem("Version");
@@ -207,6 +208,16 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			}
 		});
 		
+		openResultFolder.addActionListener(e -> {
+			try {
+				File resultFolderPath = new File(config.getResult().getResultOutputPath());
+				Desktop desktop = Desktop.getDesktop();
+				desktop.open(resultFolderPath);
+			} catch(IOException openError) {
+				openError.printStackTrace();
+			}
+		});
+		
 		settingView.addActionListener(e -> {
 			boolean saving = this.config.getResult().isSaveEnabled();
 			String resultPath = this.config.getResult().getResultOutputPath();
@@ -224,7 +235,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 		versionMenuItem.addActionListener(e -> {
 			JOptionPane.showMessageDialog(
 					null,
-					"Version: " + versions,
+					"Version: " + version,
 					"Version Information",
 					JOptionPane.INFORMATION_MESSAGE
 			);
@@ -247,6 +258,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 
 		//Display Menu Items
 		fileMenu.add(openFolder);
+		fileMenu.add(openResultFolder);
 		fileMenu.add(settingView);
 		fileMenu.add(exitMenuItem);
 		helpMenu.add(versionMenuItem);

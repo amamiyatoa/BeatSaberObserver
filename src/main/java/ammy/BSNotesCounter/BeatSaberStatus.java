@@ -17,10 +17,16 @@ public class BeatSaberStatus {
 	static class Performance {
 		public int score;
 		public int combo;
+		@SerializedName("rank")
+		public String rank;
 		@SerializedName("missedNotes")
 		public int missedNotes;
 		@SerializedName("hitNotes")
 		public int hitNotes;
+		@SerializedName("passedNotes")
+		public int passedNotes;
+		@SerializedName("hitBombs")
+		public int hitBombs;
 		@SerializedName("maxCombo")
 		public int maxCombo;
 	}

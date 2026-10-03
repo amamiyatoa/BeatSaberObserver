@@ -20,30 +20,38 @@ UX設計を意識し、ソフト起動時にどこにConfig.jsonの場所やリ�
 
 # 本作品制作時点での制作者の動作環境、および動作に使用したライブラリやBeatSaberのMOD
 ## 動作環境
-- OS : Windows 11 Home 64bit
-- CPU : Ryzen7 5700X 8C 16T
-- GPU : AMD Radeon RX 7900XT 20GB OC
-- RAM : DDR4 3200MHz 16GB × 2
-- PSU : 850W 80 Plus Gold
-- HMD : Meta Quest 3S
+- OS        : Windows 11 Home 64bit
+- CPU       : Ryzen7 7800X3D 8C 16T
+- GPU       : AMD Radeon RX 7900XT 20GB OC
+- RAM       : DDR5 4800MHz 16GB × 2
+- PSU       : 850W 80 Plus Gold
+- HMD       : Meta Quest 3S
+- Stream    : Virtual Desktop
 
 ## 使用ライブラリ
-### java標準ライブラリ
+### java標準ライブラリ:
 - awt Font
 - net URI
 - net URISyntaxException
-### Javax
+
+### Javax:
 - swing JFrame
 - swing JLabel
 - swing JPanel
 - swing BoxLayout
 - swing SwingUtilities
-### Gson
+
+### Gson:
 - com google gson
 - com google gson annotations SerializedName
-### WebSocket
+
+### WebSocket:
 - org java_websocket client WebSocketClient
 - org java_websocket handshake ServerHandshake
 
-### BeatSaber MOD
+### BeatSaber MOD:
 - HttpSiraStatus
+
+
+### exe出力メモ
+jpackage --input target/ --main-jar BSNotesCounter-0.0.1-SNAPSHOT-jar-with-dependencies.jar --main-class ammy.BSNotesCounter.App --type app-image --name BSNotesCounter-0.0.9 --app-version 0.0.9 --dest output/

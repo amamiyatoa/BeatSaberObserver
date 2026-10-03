@@ -3,9 +3,13 @@ package ammy.BSNotesCounter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
+import java.util.stream.Stream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.net.URISyntaxException;
 
 import javax.swing.*;
@@ -22,7 +26,9 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	// ── Add UI Parts ──────────────────────
 
 	//definitions label
-	private JLabel connectStatus					= new JLabel("⚪ Disconnected");
+	private int songCount					= 0;
+	private JLabel trackCount				= new JLabel("Track: -");
+	private JLabel connectStatus			= new JLabel("⚪ Disconnected");
 	private JLabel songCover				= new JLabel("");
 	private int songCoverImageSize			= 200;
 	private int songCoverBorderSize			= 3;
@@ -43,11 +49,11 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			connectStatus, notesJumpSpeed, songBPM, score, combo, maxCombo, hitNotes, miss
 	};
 	JLabel[] rightLabels = {
-			songCover, songName, songAuthor, songDifficulty
+			trackCount, songCover, songName, songAuthor, songDifficulty
 	};
 	
 	//Application version constant
-	private String version					= "0.0.8";
+	private String version					= "0.0.9";
 	
 	//Create menu bar
 	private JMenuBar windowMenuBar			= new JMenuBar();
@@ -55,6 +61,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	private JMenu helpMenu					= new JMenu("Help(_H)");
 	private JMenuItem openFolder			= new JMenuItem("Open Folder");
 	private JMenuItem openResultFolder		= new JMenuItem("Open Result Log Folder");
+	private JMenuItem deleteLogFile			= new JMenuItem("Delete All Log File");
 	private JMenuItem settingView			= new JMenuItem("View Setting");
 	private JMenuItem exitMenuItem			= new JMenuItem("Exit");
 	private JMenuItem versionMenuItem		= new JMenuItem("Version");
@@ -79,7 +86,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 		return leftFrame;														//Return a value to createLeftFrame
 	}
 	private JPanel createRightPanel() {
-		JPanel rightFrame = new JPanel();						//create rightFrame
+		JPanel rightFrame = new JPanel();										//create rightFrame
 		rightFrame.setLayout(new BoxLayout(rightFrame, BoxLayout.Y_AXIS));		//setting layout of rigthFrame
 		rightFrame.setPreferredSize(new Dimension(winWidth / 2, winHeight));	//Setting Prefer Size of rightFrame
 		rightFrame.setMinimumSize(new Dimension(winWidth / 2,winHeight));		//Setting Minimum Size of rightFrame
@@ -112,6 +119,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	private static final String ConfigFile	= "Config.json";
 	public bsPerfInfo bsPerfInfo;
 	public bsMapInfo bsMapInfo;
+	private static discord discordMgr;
 	
 	public App() {
 		init();						//Application initialization
@@ -122,6 +130,16 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	
 	//Initialization at startup
 	public void init() {
+		
+		discordMgr = new discord();
+		discordMgr.connect();
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			discordMgr.shutdown();
+		}));
+		
+		discordMgr.updateInMenu();
+		
 		setTitle("BeatSaber Observer");						//Setting Window Title
 		setSize(winWidth,winHeight);						//Setting Window Size
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);		//Setting default Close Button
@@ -218,6 +236,32 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			}
 		});
 		
+		//Delete log file
+		deleteLogFile.addActionListener(e -> {
+			File logFolder = new File(config.getResult().getResultOutputPath());
+			
+			File[] logFiles = logFolder.listFiles((d, name) -> name.toLowerCase().endsWith(".log"));
+			
+			int chooseDeleteConfirm = JOptionPane.showConfirmDialog(
+					null,
+					"ログファイルをすべて削除しますか？",
+					"Delete Confirm",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.WARNING_MESSAGE
+			);
+			if(chooseDeleteConfirm == JOptionPane.YES_OPTION) {
+				if(logFiles != null) {
+					for (File f : logFiles) {
+						f.delete();
+					}
+				} else {
+					System.out.println("ファイルが存在しないか、アクセス権がありません。");
+				}
+			} else {
+				return;
+			}
+		});
+		
 		settingView.addActionListener(e -> {
 			boolean saving = this.config.getResult().isSaveEnabled();
 			String resultPath = this.config.getResult().getResultOutputPath();
@@ -259,6 +303,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 		//Display Menu Items
 		fileMenu.add(openFolder);
 		fileMenu.add(openResultFolder);
+		fileMenu.add(deleteLogFile);
 		fileMenu.add(settingView);
 		fileMenu.add(exitMenuItem);
 		helpMenu.add(versionMenuItem);
@@ -267,6 +312,10 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 		setJMenuBar(windowMenuBar);
 		
 		connectWebSocket();									//Connect WebSocket
+	}
+
+	public static discord getDiscord() {
+		return discordMgr;
 	}
 	
 	//apply GUI font size
@@ -304,23 +353,30 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	@Override
 	public void onError(String message) {
 		connectStatus.setText("❌️ Error:" + message);
+		System.out.println("Err:" + message);
 	}
 
 	//for ResultFileOutput
 	public static class bsPerfInfo{
 		
 		public int score;
+		public String rank;
 		public int combo;
 		public int maxCombo;
 		public int hitNotes;
 		public int miss;
+		public int passedNotes;
+		public int hitBombs;
 		
 		public bsPerfInfo(BeatSaberStatus.Performance perf) {
 			this.score			= perf.score;
+			this.rank			= perf.rank;
 			this.combo			= perf.combo;
 			this.maxCombo		= perf.maxCombo;
 			this.hitNotes		= perf.hitNotes;
 			this.miss			= perf.missedNotes;
+			this.passedNotes	= perf.passedNotes;
+			this.hitBombs		= perf.hitBombs;
 		}
 	}
 	public static class bsMapInfo{
@@ -373,23 +429,31 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 			//save the log file when finished
 			if("songStart".equals(status.event)) {
 				this.bsMapInfo		= new bsMapInfo(map);
+				discordMgr.updatePresence(map.songName, map.songAuthorName);
+				songCount += 1;
+				trackCount.setText("Track: " + songCount);
 			}
-			if("finished".equals(status.event) || "failed".equals(status.event)) {
+			if("finished".equals(status.event)) {
 				this.bsPerfInfo		= new bsPerfInfo(perf);
-				finished(bsPerfInfo,bsMapInfo);
+				finished(bsPerfInfo,bsMapInfo,"Finished");
+				discordMgr.updateInMenu();
+			} else if("failed".equals(status.event)) {
+				this.bsPerfInfo		= new bsPerfInfo(perf);
+				finished(bsPerfInfo,bsMapInfo,"Failed");
+				discordMgr.updateInMenu();
 			}
 		});
 	}
 	
 	//finished method
-	private void finished(bsPerfInfo bsPerfInfo, bsMapInfo bsMapInfo) {
+	private void finished(bsPerfInfo bsPerfInfo, bsMapInfo bsMapInfo, String songFinishResult) {
 		try {
 			String configPath = ConfigDir + File.separator + ConfigFile;
 			config = Config.loadFromFile(configPath);
 			File resultOutputFullPath = new File(config.getResult().getResultOutputPath());
 			String resultOutputFullPaths = resultOutputFullPath.getAbsolutePath();
 			if(config.getResult().isSaveEnabled()) {
-				new ResultFileOutput(resultOutputFullPaths, bsPerfInfo, bsMapInfo);
+				new ResultFileOutput(resultOutputFullPaths, bsPerfInfo, bsMapInfo, version, songFinishResult);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -426,6 +490,7 @@ public class App extends JFrame implements BeatSaberWebSocketClient.StatusUpdate
 	
 	// Reset Display
 	private void resetLabels() {								//Reset labels
+		trackCount.setText("Track: -");
 		songCover.setIcon(alternativeIcon);
 		songName.setText("Song: -");
 		songAuthor.setText("Song Author: -");

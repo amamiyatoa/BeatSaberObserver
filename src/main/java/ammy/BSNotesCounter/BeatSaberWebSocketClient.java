@@ -17,6 +17,7 @@ public class BeatSaberWebSocketClient extends WebSocketClient {
 	
 	private final Gson gson = new Gson();
 	private final StatusUpdateListener listener;
+	private String lastSongName = null;
 	
 	BeatSaberWebSocketClient(StatusUpdateListener listener) throws URISyntaxException {
 		super(new URI("ws://localhost:6557/socket"));
@@ -32,8 +33,16 @@ public class BeatSaberWebSocketClient extends WebSocketClient {
 	public void onMessage(String message) {
 		BeatSaberStatus status = gson.fromJson(message, BeatSaberStatus.class);
 			
-			javax.swing.SwingUtilities.invokeLater(() -> {
-				listener.onStatusUpdated(status);
+		if (status.status != null && status.status.beatmap != null) {
+			String currentSongName = status.status.beatmap.songName;
+			if (currentSongName != null && !currentSongName.equals(lastSongName)) {
+				lastSongName = currentSongName;
+				App.getDiscord().onSongStart(currentSongName, currentSongName);
+			}
+		}
+		
+		javax.swing.SwingUtilities.invokeLater(() -> {
+			listener.onStatusUpdated(status);
 		});
 	}
 	@Override

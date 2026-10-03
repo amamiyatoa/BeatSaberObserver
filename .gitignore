@@ -17,4 +17,8 @@ output/
 
 # OS関連
 .DS_Store
-Thumbs.dboutput/ 
+Thumbs.db
+
+# その他
+output/
+results/
